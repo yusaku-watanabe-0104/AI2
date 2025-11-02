@@ -104,7 +104,7 @@
           body: JSON.stringify({ prompt, answers })
         });
         const data = await res.json();
-        const aiText = data.output || "（AIの応答がありませんでした）";
+        const aiText = data.completion || "（AIの応答がありませんでした）";
         addMessage(aiText, "ai");
 
         // 価値促進メッセージの後に反省質問を投げる
@@ -136,7 +136,7 @@
           body: JSON.stringify({ prompt, answers })
         });
         const data = await res.json();
-        const aiText = data.output || "（AIの応答がありませんでした）";
+        const aiText = data.completion || "（AIの応答がありませんでした）";
         addMessage(aiText, "ai");
       } catch (err) {
         console.error(err);
