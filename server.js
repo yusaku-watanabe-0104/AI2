@@ -11,9 +11,7 @@ import fs from "fs";
 dotenv.config();
 
 // Firebaseサービスアカウント読み込み
-const serviceAccount = JSON.parse(
-  fs.readFileSync(process.env.FIREBASE_KEY_PATH, "utf8")
-);
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 // Firebase初期化（既存アプリがあれば再利用）
 if (!admin.apps.length) {
