@@ -98,7 +98,7 @@
       // --- サーバーへ送信 ---
       try {
         addMessage("AIに問い合わせ中…", "ai");
-        const res = await fetch("/api/chat", {
+        const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, answers })
@@ -130,7 +130,7 @@
 `;
       try {
         addMessage("AIに問いかけています…", "ai");
-        const res = await fetch("/api/chat", {
+        const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, answers })
