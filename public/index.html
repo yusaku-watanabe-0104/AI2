@@ -82,19 +82,24 @@
     // --- 価値促進メッセージをAI生成する関数 ---
     async function generateAICompletion() {
       // --- カスタマイズポイント（ここを編集してプロンプトを変える） ---
-      const prompt = `
+      const pdfText = "We define attainment value in terms of the personal importance attached to doing well on, or participating in, a given task. Our notion of attainment value is closely linked to work on identity: tasks are seen as important when engaging in them is central to individuals' core social and personal identities, because such tasks provide the opportunity to express or confirm important aspects of the self. Connell and Wellborn (1991) argued that motivation is influenced by opportunities to fulfill basic needs for autonomy, relatedness, and competence. We add: 1. the need to feel that what one does matters to one’s social group, and 2. the need to feel respected and valued by it. The attainment value of tasks is influenced by how they fulfill personal needs and values. As we grow up, we develop images of who we are and want to be, including: (1) our personality and capabilities, (2) long-range goals and plans, (3) schemas about proper roles of people “like us,” (4) instrumental and terminal values, (5) motivational sets or goal orientations, and (6) ideal or hoped-for selves. These images form our social and personal identities, which powerfully influence the value we attach to activities. People value tasks that align with their identity and goals, and select tasks with high subjective value. Thus, different identities shaped by sociocultural learning (e.g., gender) lead to different valuations of the same activities.";
+      const prompt = `${pdfText}
+上記の文章は達成価値の定義や特性を述べたものです．
 あなたは教育に熱心な高校数学の先生です。
-以下の生徒の情報を参考に、三角比がその生徒にとってどのような意味を持つかを、
-高校生に親しみやすい話し言葉で、約400文字で説明してください。
-「達成価値」という言葉は使わないでください。
+以下の情報を参考に、私にとっての三角比についての達成価値を、学習範囲の具体例を交えながら400文字程度で高校生に親しみやすいように話し言葉で説明してください。「達成価値」という言葉は用いなくて大丈夫です．
+また，三角比はこれから学習します．
 
-- 自分のこと: ${answers.selfImage || ""}
-- 理想の自分: ${answers.idealSelf || ""}
-- 大切にしていること: ${answers.values || ""}
-- 近い将来の目標: ${answers.future || ""}
-- 挑戦のときに意識すること: ${answers.recentEffort || ""}
-- クラスで期待されている役割: ${answers.kitai || ""}
+ 私は自分を「${answers.selfImage}」と捉えています。
+- 私の理想の自分は「${answers.idealSelf}」です。
+- 私が普段の生活や学校での行動を決めるとき、特に大事にしていることは「${answers.values}」です。
+- 私の近い将来の目標は「${answers.future}」です。
+- 私は何かに挑戦するとき、目標は「${answers.recentEffort}」ことです。
+- 私はクラスにおいて，「${answers.kitai}」することを期待されていると思います。
+
+これらの私の特徴は上記の達成価値の特性の文章における社会的・個人的アイデンティティを構成する６つの要素に沿っています。
+上から(1),(6),(4),(2),(5),(3)です。
 `;
+
 
       // --- サーバーへ送信 ---
       try {
@@ -127,7 +132,7 @@
 あなたは高校数学の先生です。生徒が次のように回答しました：
 "${userAnswer}"
 
-この回答を受けて、共感を示しつつ、前向きで短い（〜100文字）励まし・具体的な学びの提案をしてください。
+この回答を受けて、共感を示しつつ、前向きで短い（〜300文字）励まし・具体的な学びの提案をしてください。
 `;
       try {
         addMessage("AIに問いかけています…", "ai");
