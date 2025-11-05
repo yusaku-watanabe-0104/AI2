@@ -47,6 +47,8 @@
     let finalFeedbackWaiting = false;
     let finalFeedbackSent = false;
 
+    let firstAiResponse = "";
+
     function addMessage(text, sender="ai") {
       const bubble = document.createElement("div");
       bubble.className = `bubble ${sender}`;
@@ -79,24 +81,34 @@
         reflectionAsked = true;
         await generateReflectionReply(value); // 2回目の呼び出し
 
-        // 【修正】3回目の応答をすぐに呼ばず、待機状態へ移行
+        // 3回目の応答の前にユーザー入力を挟むための待機状態へ移行
         setTimeout(() => {
-            addMessage("ありがとうございます。それでは、最後にあなたへのメッセージを送ります。入力欄に何か入力して**送信**を押してください。", "ai");
-            finalFeedbackWaiting = true; // 待機状態フラグを立てる
+            addMessage("自分の目標に対して、この文章はどのように役立つと思いますか？", "ai");
+            finalFeedbackWaiting = true; 
         }, 1000);
     } 
-    // 【新規】最終フィードバック待機フェーズ
+    // 最終フィードバック待機フェーズ
     else if (finalFeedbackWaiting) {
         // ユーザーが何か入力したら、3回目のAI応答を実行
-        finalFeedbackWaiting = false; // 待機状態を解除
-        await generateFinalFeedback(); // ← 3回目の呼び出し
+        finalFeedbackWaiting = false; 
+        await generateFinalFeedback(); // 3回目の呼び出し
         finalFeedbackSent = true;
     }
-    // 最終フィードバック完了後
+    // 最終フィードバック完了後の簡易フォローアップと終了メッセージ
     else if (finalFeedbackSent) { 
-        // 3回目の応答が完了した後、簡易的なフォローアップに戻る
+        // 簡易的なフォローアップ
         const reply = simpleReply(value);
         setTimeout(() => addMessage(reply, "ai"), 700);
+
+        // 【ここからが追加部分】フォローアップの後で終了メッセージを送信
+        // finalFeedbackSentをfalseに戻し、二度とこのブロックに入らないようにする
+        finalFeedbackSent = false; 
+        setTimeout(() => {
+            addMessage("これで終了です。お疲れ様でした！", "ai");
+            // 終了後は入力を無効化しても良い
+            document.getElementById('userInput').disabled = true; 
+            document.querySelector('button').disabled = true;
+        }, 1500); 
     }
     // その他の状態（念のため）
     else {
@@ -137,11 +149,12 @@
         });
         const data = await res.json();
         const aiText = data.completion || "（AIの応答がありませんでした）";
+        firstAiResponse = aiText;
         addMessage(aiText, "ai");
 
         // 価値促進メッセージの後に反省質問を投げる
         setTimeout(() => {
-          addMessage("自分の目標に対して、この文章はどのように役立つと思いますか？", "ai");
+          addMessage("この文章の中で，間違っていると思う部分はありますか", "ai");
           afterValuePhase = true;
         }, 700);
 
@@ -155,13 +168,16 @@
     async function generateReflectionReply(userAnswer) {
       // --- カスタマイズポイント（ここを編集して返しのトーンや長さを変える） ---
       const prompt = `
-あなたは高校数学の先生です。生徒が次のように回答しました：
+あなたは高校数学の先生です。
+以前、あなたは生徒に次の数学の価値促進メッセージを送りました：
+「${firstAiResponse}」
+あなたが提示した文章に対して，間違っている部分を生徒が次のように回答しました：
 "${userAnswer}"
 
-この回答を受けて、共感を示しつつ、前向きで短い（〜300文字）励まし・具体的な学びの提案をしてください。
+この回答を受けて、300文字程度で間違いの指摘が適切なものなのかをフィードバックしてください。
 `;
       try {
-        addMessage("AIに問いかけています…", "ai");
+        addMessage("少し待ってね", "ai");
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -188,12 +204,12 @@
     async function generateFinalFeedback() {
         // プロンプトは、これまでの全ての回答を総合的に評価して、生徒に最終的な励ましを与える内容にします。
         const finalPrompt = `
-あなたは教育に熱心な高校数学の先生です。生徒は一連の質問と、その後の「達成価値」の説明、そして「自分の目標に対して、この文章はどのように役立つと思いますか？」という反省質問に答えました。
+あなたは教育に熱心な高校数学の先生です。
 生徒の全ての回答（answers変数内）と、これまでの対話の文脈全体を考慮し、生徒がこれから三角比の学習に入るにあたって、**最も心に残るような、前向きで、学びへの関心を高める、最終的な励ましのメッセージ（250文字程度）**を生成してください。
 すべての回答: ${JSON.stringify(answers)}
 `;
         try {
-            addMessage("さらに深く考えますね…", "ai");
+            addMessage("少し待ってね", "ai");
             // サーバーの既存の /api/generate を利用し、3回目のAI応答を生成
             const res = await fetch("/api/generate", { 
                 method: "POST",
