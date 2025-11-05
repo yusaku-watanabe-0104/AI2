@@ -44,6 +44,7 @@
     const keys = ["number", "selfImage", "idealSelf", "values", "future", "recentEffort", "kitai"];
     let afterValuePhase = false;
     let reflectionAsked = false;
+    let finalFeedbackWaiting = false;
     let finalFeedbackSent = false;
 
     function addMessage(text, sender="ai") {
@@ -62,12 +63,12 @@
 
     // 質問フェーズ (1回目のAI呼び出し: generateAICompletion)
     if (!afterValuePhase) {
+        // ... (省略: 質問フェーズのロジックは変更なし) ...
         answers[keys[step]] = value;
         step++;
         if (step < questions.length) {
             setTimeout(() => addMessage(questions[step], "ai"), 600);
         } else {
-            // 質問が全て終わったら、1回目のAI呼び出し
             addMessage("少し考えますね…", "ai");
             await generateAICompletion(); 
         }
@@ -78,19 +79,26 @@
         reflectionAsked = true;
         await generateReflectionReply(value); // 2回目の呼び出し
 
-        // 【ここからが追加部分】2回目の応答後、3回目のAI応答を呼び出す
-        setTimeout(async () => {
-            await generateFinalFeedback(); // ← 3回目の呼び出し
-            finalFeedbackSent = true; // 3回目の応答完了フラグを立てる
-        }, 1000); 
+        // 【修正】3回目の応答をすぐに呼ばず、待機状態へ移行
+        setTimeout(() => {
+            addMessage("ありがとうございます。それでは、最後にあなたへのメッセージを送ります。入力欄に何か入力して**送信**を押してください。", "ai");
+            finalFeedbackWaiting = true; // 待機状態フラグを立てる
+        }, 1000);
     } 
+    // 【新規】最終フィードバック待機フェーズ
+    else if (finalFeedbackWaiting) {
+        // ユーザーが何か入力したら、3回目のAI応答を実行
+        finalFeedbackWaiting = false; // 待機状態を解除
+        await generateFinalFeedback(); // ← 3回目の呼び出し
+        finalFeedbackSent = true;
+    }
     // 最終フィードバック完了後
     else if (finalFeedbackSent) { 
         // 3回目の応答が完了した後、簡易的なフォローアップに戻る
         const reply = simpleReply(value);
         setTimeout(() => addMessage(reply, "ai"), 700);
-    } 
-    // ※ generateReflectionReply の実行中など、中間的な状態での簡易応答（念のため残す）
+    }
+    // その他の状態（念のため）
     else {
         const reply = simpleReply(value);
         setTimeout(() => addMessage(reply, "ai"), 700);
