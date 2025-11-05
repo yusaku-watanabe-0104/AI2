@@ -44,6 +44,7 @@
     const keys = ["number", "selfImage", "idealSelf", "values", "future", "recentEffort", "kitai"];
     let afterValuePhase = false;
     let reflectionAsked = false;
+    let finalFeedbackSent = false;
 
     function addMessage(text, sender="ai") {
       const bubble = document.createElement("div");
@@ -54,30 +55,47 @@
     }
 
     async function handleInput() {
-      const value = input.value.trim();
-      if (!value) return;
-      addMessage(value, "user");
-      input.value = "";
+    const value = input.value.trim();
+    if (!value) return;
+    addMessage(value, "user");
+    input.value = "";
 
-      if (!afterValuePhase) {
+    // 質問フェーズ (1回目のAI呼び出し: generateAICompletion)
+    if (!afterValuePhase) {
         answers[keys[step]] = value;
         step++;
         if (step < questions.length) {
-          setTimeout(() => addMessage(questions[step], "ai"), 600);
+            setTimeout(() => addMessage(questions[step], "ai"), 600);
         } else {
-          addMessage("少し考えますね…", "ai");
-          await generateAICompletion(); // ← ここを呼ぶ（サーバーに投げる）
+            // 質問が全て終わったら、1回目のAI呼び出し
+            addMessage("少し考えますね…", "ai");
+            await generateAICompletion(); 
         }
-      } else if (!reflectionAsked) {
-        // ユーザーの反省回答（質問：「自分の目標に対して・・・」に対する回答）を受け取り、AIで応答を作る
+    } 
+    // 反省フェーズ (2回目のAI呼び出し: generateReflectionReply)
+    else if (!reflectionAsked) {
+        // ユーザーの反省回答を受け取り、AIで応答を作る
         reflectionAsked = true;
-        await generateReflectionReply(value);
-      } else {
-        // それ以降は簡易的なフォローアップ（必要ならここもAPI化可）
+        await generateReflectionReply(value); // 2回目の呼び出し
+
+        // 【ここからが追加部分】2回目の応答後、3回目のAI応答を呼び出す
+        setTimeout(async () => {
+            await generateFinalFeedback(); // ← 3回目の呼び出し
+            finalFeedbackSent = true; // 3回目の応答完了フラグを立てる
+        }, 1000); 
+    } 
+    // 最終フィードバック完了後
+    else if (finalFeedbackSent) { 
+        // 3回目の応答が完了した後、簡易的なフォローアップに戻る
         const reply = simpleReply(value);
         setTimeout(() => addMessage(reply, "ai"), 700);
-      }
+    } 
+    // ※ generateReflectionReply の実行中など、中間的な状態での簡易応答（念のため残す）
+    else {
+        const reply = simpleReply(value);
+        setTimeout(() => addMessage(reply, "ai"), 700);
     }
+}
 
     // --- 価値促進メッセージをAI生成する関数 ---
     async function generateAICompletion() {
@@ -157,6 +175,30 @@
         "面白いですね！ その感覚を大切にしてください。"
       ];
       return samples[Math.floor(Math.random() * samples.length)];
+    }
+
+    async function generateFinalFeedback() {
+        // プロンプトは、これまでの全ての回答を総合的に評価して、生徒に最終的な励ましを与える内容にします。
+        const finalPrompt = `
+あなたは教育に熱心な高校数学の先生です。生徒は一連の質問と、その後の「達成価値」の説明、そして「自分の目標に対して、この文章はどのように役立つと思いますか？」という反省質問に答えました。
+生徒の全ての回答（answers変数内）と、これまでの対話の文脈全体を考慮し、生徒がこれから三角比の学習に入るにあたって、**最も心に残るような、前向きで、学びへの関心を高める、最終的な励ましのメッセージ（250文字程度）**を生成してください。
+すべての回答: ${JSON.stringify(answers)}
+`;
+        try {
+            addMessage("さらに深く考えますね…", "ai");
+            // サーバーの既存の /api/generate を利用し、3回目のAI応答を生成
+            const res = await fetch("/api/generate", { 
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: finalPrompt, answers: answers }) // answersは保存のために渡します
+            });
+            const data = await res.json();
+            const aiText = data.completion || "（AIの応答がありませんでした）";
+            addMessage(aiText, "ai");
+        } catch (err) {
+            console.error(err);
+            addMessage("最終フィードバックの生成に失敗しました。", "ai");
+        }
     }
 
     // 初回質問を表示
