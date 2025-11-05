@@ -94,22 +94,7 @@
         await generateFinalFeedback(); // 3回目の呼び出し
         finalFeedbackSent = true;
     }
-    // 最終フィードバック完了後の簡易フォローアップと終了メッセージ
-    else if (finalFeedbackSent) { 
-        // 簡易的なフォローアップ
-        const reply = simpleReply(value);
-        setTimeout(() => addMessage(reply, "ai"), 700);
-
-        // 【ここからが追加部分】フォローアップの後で終了メッセージを送信
-        // finalFeedbackSentをfalseに戻し、二度とこのブロックに入らないようにする
-        finalFeedbackSent = false; 
-        setTimeout(() => {
-            addMessage("これで終了です。お疲れ様でした！", "ai");
-            // 終了後は入力を無効化しても良い
-            document.getElementById('userInput').disabled = true; 
-            document.querySelector('button').disabled = true;
-        }, 1500); 
-    }
+    
     // その他の状態（念のため）
     else {
         const reply = simpleReply(value);
@@ -219,6 +204,12 @@
             const data = await res.json();
             const aiText = data.completion || "（AIの応答がありませんでした）";
             addMessage(aiText, "ai");
+            setTimeout(() => {
+                addMessage("これで終了です。お疲れ様でした！", "ai"); // 終了メッセージ
+                document.getElementById('userInput').disabled = true;  // 入力欄の無効化
+                document.querySelector('button').disabled = true; // ボタンの無効化
+                finalFeedbackSent = true; // 状態を更新
+            }, 1500);
         } catch (err) {
             console.error(err);
             addMessage("最終フィードバックの生成に失敗しました。", "ai");
