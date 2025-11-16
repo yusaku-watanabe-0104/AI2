@@ -11,20 +11,33 @@ import fs from "fs";
 dotenv.config();
 
 // Firebaseサービスアカウント読み込み
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+let serviceAccount;
+try {
+  const serviceAccountString = process.env.FIREBASE_CREDENTIALS;
+  // Render環境でJSON文字列が正しく読み込まれるための処理
+  const cleanedString = serviceAccountString.replace(/\\n/g, '\n'); 
+  serviceAccount = JSON.parse(cleanedString); 
+  console.log("✅ 認証情報パース結果: 成功 (Project ID:", serviceAccount.project_id, ")");
+} catch (error) {
+  // 認証情報の読み込み失敗を明確にログ出力
+  console.error("🔥🔥🔥 デバッグログ: 認証情報の読み込み・パースに失敗 🔥🔥🔥");
+  console.error("原因:", error.message);
+}
 
-// Firebase初期化（既存アプリがあれば再利用）
-if (!admin.apps.length) {
+// Firebase初期化（serviceAccountがundefinedでなければ初期化）
+if (!admin.apps.length && serviceAccount) { // serviceAccountが存在する場合のみ初期化
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
+  console.log("✅ Firebase Admin SDKの初期化を試行しました。");
 }
 
 const db = admin.firestore();
 
 // サーバー設定
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; 
+const host = '0.0.0.0';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -46,7 +59,7 @@ app.post("/api/generate", async (req, res) => {
     const { prompt, answers } = req.body;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
+      model: "gpt-5",
       messages: [
         { role: "system", content: "あなたは教育に熱心な数学の先生です。" },
         { role: "user", content: prompt },
@@ -57,7 +70,7 @@ app.post("/api/generate", async (req, res) => {
     const completion = response.choices[0].message.content;
 
     // Firestoreに保存
-    await db.collection("history").add({
+    await db.collection("kekka").add({
       answers: answers,
       prompt: prompt,
       completion: completion,
@@ -66,7 +79,7 @@ app.post("/api/generate", async (req, res) => {
 
     res.json({ completion });
   } catch (error) {
-    console.error(error);
+    console.error("Firestore書き込みエラー:", error.message || error);
     res.status(500).json({ error: "APIリクエストに失敗しました。" });
   }
 });
@@ -76,7 +89,7 @@ app.post("/api/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
+      model: "gpt-5",
       messages: [
         { role: "system", content: "あなたは教育に熱心な高校数学の先生です。" },
         { role: "user", content: prompt },
