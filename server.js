@@ -8,7 +8,7 @@ import admin from "firebase-admin";
 import fs from "fs";
 
 // 環境変数読み込み
-dotenv.config();
+//dotenv.config();
 
 // Firebaseサービスアカウント読み込み
 const serviceAccount = {
