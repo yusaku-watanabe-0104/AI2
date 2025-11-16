@@ -66,7 +66,6 @@ app.post("/api/generate", async (req, res) => {
         { role: "system", content: "あなたは教育に熱心な数学の先生です。" },
         { role: "user", content: prompt },
       ],
-      temperature: 0.7,
     });
 
     const completion = response.choices[0].message.content;
@@ -96,7 +95,6 @@ app.post("/api/chat", async (req, res) => {
         { role: "system", content: "あなたは教育に熱心な高校数学の先生です。" },
         { role: "user", content: prompt },
       ],
-      //temperature: 0.7,
     });
     const completion = response.choices[0].message.content;
     res.json({ output: completion });
