@@ -61,7 +61,7 @@ app.post("/api/generate", async (req, res) => {
     const { prompt, answers } = req.body;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "あなたは教育に熱心な数学の先生です。" },
         { role: "user", content: prompt },
@@ -90,7 +90,7 @@ app.post("/api/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "あなたは教育に熱心な高校数学の先生です。" },
         { role: "user", content: prompt },
